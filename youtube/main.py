@@ -6,7 +6,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 
-# from selenium import webdriver
 from datetime import datetime
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -16,64 +15,49 @@ import undetected_chromedriver as webdriver
 load_dotenv()
 
 
-def logger(str: str):
-    print(f"[{datetime.now()}] {str}")
+def logger(str: str, processed_count: int):
+    print(f"[{datetime.now()}] [{processed_count} processed] {str}")
 
 
 yturl = "https://youtube.com"
-logger("Scraping Youtube")
+logger("Scraping Youtube", 0)
 
 res = {}
+processed_count = 0
 
 options = Options()
 options.binary_location = (
     os.environ["BINARY"]
 )
 options.add_argument("-headless")
-if "DATADIR" in os.environ: 
-    options.add_argument(f"--user-data-dir={os.environ["DATADIR"]}") # Get this from chrome://version
+if "DATADIR" in os.environ:
+    options.add_argument(f"--user-data-dir={os.environ["DATADIR"]}")  # Get this from chrome://version
 options.add_argument("--profile-directory=Default")
 
-with webdriver.Chrome(options=options, version_main=127) as driver:
-    try:
-        driver.switch_to.new_window("windus")
-        driver.get(yturl)
-        logger("Opened YT")
+
+def explore_videos(driver, video_urls, depth, max_depth):
+    global processed_count
+
+    if depth > max_depth:
+        return
+
+    for video_url in video_urls:
+        driver.get(video_url)
+
         try:
             wait = WebDriverWait(driver, timeout=30)
             wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "a#video-title-link"))
+                EC.presence_of_element_located((By.CSS_SELECTOR, "yt-formatted-string.ytd-watch-metadata"))
             )
 
-            last_height = driver.execute_script("return document.body.scrollHeight")
-            for _ in range(5):
-                # Scroll down to bottom
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    
-                # Wait to load page
-                time.sleep(2)
-    
-                # Calculate new scroll height and compare with last scroll height
-                new_height = driver.execute_script("return document.body.scrollHeight")
-                if new_height == last_height:
-                    break
-                last_height = new_height
-
-
-            logger("Titles rendered on page, parsing...")
+            logger(f"Extracting metadata for {video_url}", processed_count)
             parsed = BeautifulSoup(driver.page_source, features="html.parser")
-            all_titles = parsed.select("a#video-title-link")
+            title = parsed.select_one("yt-formatted-string.ytd-watch-metadata").text  # So linter doesn't scream # type: ignore
 
-            for title in all_titles:
-                if title.text not in res:
-                    res[title.text] = {"title": title.text, "href": yturl + str(title["href"])}
+            if title not in res:
+                res[title] = {"title": title, "href": video_url}
 
-            for video in res.values():
-                to_visit = video["href"]
-                logger(f"Visiting {to_visit} ({video["title"]})")
-                driver.get(to_visit)
-
-                # NOTE: Grabbing desc
+                # Grab description
                 try:
                     wait.until(
                         EC.presence_of_element_located(
@@ -94,19 +78,20 @@ with webdriver.Chrome(options=options, version_main=127) as driver:
                             )
                         )
                     )
-                    logger(f"({video["title"]}) description located.")
+                    logger(f"({title}) description located.", processed_count)
                     parsed = BeautifulSoup(driver.page_source, features="html.parser")
 
-                    video["desc"] = parsed.select_one(
+                    res[title]["desc"] = parsed.select_one(
                         "#description-inline-expander span.yt-core-attributed-string"  # So linter doesn't scream # type: ignore
                     ).text  # So linter doesn't scream # type: ignore
-                    logger(f"({video["title"]}) description extracted.")
+                    logger(f"({title}) description extracted.", processed_count)
                 except:
                     logger(
-                        f"({video["title"]}) failed to locate description, assuming empty or non-standard tagging, skipping."
+                        f"({title}) failed to locate description, assuming empty or non-standard tagging, skipping.",
+                        processed_count
                     )
 
-                # NOTE: Grabbing likes
+                # Grab likes
                 try:
                     wait.until(
                         EC.presence_of_element_located(
@@ -116,25 +101,61 @@ with webdriver.Chrome(options=options, version_main=127) as driver:
                             )
                         )
                     )
-                    logger(f"({video["title"]}) likes located.")
+                    logger(f"({title}) likes located.", processed_count)
                     parsed = BeautifulSoup(driver.page_source, features="html.parser")
 
-                    video["likes"] = parsed.select_one(
+                    res[title]["likes"] = parsed.select_one(
                         ".YtLikeButtonViewModelHost .yt-spec-button-shape-next__button-text-content"  # So linter doesn't scream # type: ignore
                     ).text  # So linter doesn't scream # type: ignore
-                    logger(f"({video["title"]}) likes extracted.")
+                    logger(f"({title}) likes extracted.", processed_count)
                 except:
                     logger(
-                        f"({video["title"]}) failed to locate likes, assuming empty or non-standard tagging, skipping."
-                    )                              
+                        f"({title}) failed to locate likes, assuming empty or non-standard tagging, skipping.",
+                        processed_count
+                    )
+
+                processed_count += 1
+
+                # Extract related video URLs
+                related_videos = parsed.select("a.ytd-compact-video-renderer")
+                related_video_urls = [yturl + video["href"] for video in related_videos]  # So linter doesn't scream # type: ignore
+
+                # Recursively explore related videos
+                explore_videos(driver, related_video_urls, depth + 1, max_depth)
+
         except:
-            # NOTE: If fail, we grab a screenshot for debugging
-            driver.get_screenshot_as_file(f"fail_{len(list(filter(lambda x: "fail" in x, os.listdir(os.getcwd())))) + 1}.png") 
+            logger(f"Failed to extract metadata for {video_url}", processed_count)
+            driver.get_screenshot_as_file(f"fail_{len(list(filter(lambda x: 'fail' in x, os.listdir(os.getcwd())))) + 1}.png")
+
+
+with webdriver.Chrome(options=options, version_main=127) as driver:
+    try:
+        driver.switch_to.new_window("windus")
+        driver.get(yturl)
+        logger("Opened YT", processed_count)
+
+        try:
+            wait = WebDriverWait(driver, timeout=30)
+            wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "a#video-title-link"))
+            )
+
+            logger("Titles rendered on page, parsing...", processed_count)
+            parsed = BeautifulSoup(driver.page_source, features="html.parser")
+            all_titles = parsed.select("a#video-title-link")
+
+            initial_video_urls = [yturl + str(title["href"]) for title in all_titles]
+
+            max_depth = 2
+            explore_videos(driver, initial_video_urls, 0, max_depth)
+
+        except:
+            driver.get_screenshot_as_file(f"fail_{len(list(filter(lambda x: 'fail' in x, os.listdir(os.getcwd())))) + 1}.png")
             raise LookupError("Element not found")
-            
-        with open(f"ytResults_{len(list(filter(lambda x: "ytResults" in x, os.listdir(os.getcwd())))) + 1}_{uuid4()}.json", "w") as f:
-                    f.write(json.dumps(res))
-                    logger(f"In total, we extracted {len(res.keys())} video metadatas.")
+
+        with open(f"ytResults_{len(list(filter(lambda x: 'ytResults' in x, os.listdir(os.getcwd())))) + 1}_{uuid4()}.json", "w") as f:
+            f.write(json.dumps(res))
+            logger(f"In total, we extracted {len(res.keys())} video metadatas.", processed_count)
+
     except Exception as e:
         print(e)
-
