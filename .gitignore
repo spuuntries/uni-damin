@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+fail_*.png
+sandbox/
+
 # C extensions
 *.so
 
