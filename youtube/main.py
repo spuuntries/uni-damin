@@ -84,7 +84,7 @@ def explore_videos(driver, video_urls, depth, max_depth):
                     res[title]["desc"] = parsed.select_one(
                         "#description-inline-expander span.yt-core-attributed-string"  # So linter doesn't scream # type: ignore
                     ).text  # So linter doesn't scream # type: ignore
-                    logger(f"({title}) description extracted.", processed_count)
+                    logger(f"({title}) description extracted: {res[title]['desc'][:20]}...", processed_count)
                 except:
                     logger(
                         f"({title}) failed to locate description, assuming empty or non-standard tagging, skipping.",
@@ -107,7 +107,7 @@ def explore_videos(driver, video_urls, depth, max_depth):
                     res[title]["likes"] = parsed.select_one(
                         ".YtLikeButtonViewModelHost .yt-spec-button-shape-next__button-text-content"  # So linter doesn't scream # type: ignore
                     ).text  # So linter doesn't scream # type: ignore
-                    logger(f"({title}) likes extracted.", processed_count)
+                    logger(f"({title}) likes extracted: : {res[title]['likes']}", processed_count)
                 except:
                     logger(
                         f"({title}) failed to locate likes, assuming empty or non-standard tagging, skipping.",
@@ -130,7 +130,7 @@ def explore_videos(driver, video_urls, depth, max_depth):
                     res[title]["duration"] = parsed.select_one(
                         ".ytp-time-duration"
                     ).text  # type: ignore
-                    logger(f"({title}) duration extracted.", processed_count)
+                    logger(f"({title}) duration extracted: {res[title]['duration']}", processed_count)
                 except:
                     logger(
                         f"({title}) failed to locate duration, assuming empty or non-standard tagging, skipping.",
@@ -153,7 +153,7 @@ def explore_videos(driver, video_urls, depth, max_depth):
                     res[title]["channelName"] = parsed.select_one(
                         ".ytd-channel-name a",
                     ).text  # type: ignore
-                    logger(f"({title}) channel extracted.", processed_count)
+                    logger(f"({title}) channel extracted: {res[title]['channelName']}", processed_count)
                 except:
                     logger(
                         f"({title}) failed to locate channel, assuming empty or non-standard tagging, skipping.",
@@ -176,7 +176,7 @@ def explore_videos(driver, video_urls, depth, max_depth):
                     res[title]["subCount"] = parsed.select_one(
                         "#owner-sub-count"
                     ).text  # type: ignore
-                    logger(f"({title}) sub count extracted.", processed_count)
+                    logger(f"({title}) sub count extracted: {res[title]['subCount']}", processed_count)
                 except:
                     logger(
                         f"({title}) failed to locate sub count, assuming empty or non-standard tagging, skipping.",
@@ -196,13 +196,8 @@ def explore_videos(driver, video_urls, depth, max_depth):
                     logger(f"({title}) date & views located.", processed_count)
                     parsed = BeautifulSoup(driver.page_source, features="html.parser")
 
-                    date_views = parsed.select_one(".ytd-watch-info-text #info").text.split(  # type: ignore
-                        " "
-                    )
-                    if len(date_views) > 1:
-                        res[title]["viewCount"] = date_views[0]
-                    res[title]["uploadDate"] = date_views[-1]
-                    logger(f"({title}) date & views extracted.", processed_count)
+                    res[title]["dateAndViews"]  = parsed.select_one(".ytd-watch-info-text #info").text  # type: ignore
+                    logger(f"({title}) date & views extracted: {res[title]['dateAndViews']}", processed_count)
                 except:
                     logger(
                         f"({title}) failed to locate date & views count, assuming empty or non-standard tagging, skipping.",
