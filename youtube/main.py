@@ -1,16 +1,15 @@
-import json
-import os
-import time
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
-
+from selenium.webdriver.common.by import By
+import undetected_chromedriver as webdriver
+from dotenv import load_dotenv
 from datetime import datetime
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
 from uuid import uuid4
-import undetected_chromedriver as webdriver
+import json
+import time
+import os
 
 load_dotenv()
 
@@ -24,6 +23,7 @@ logger("Scraping Youtube", 0)
 
 res = {}
 processed_count = 0
+max_depth = 2
 
 options = Options()
 options.binary_location = (
@@ -114,6 +114,101 @@ def explore_videos(driver, video_urls, depth, max_depth):
                         processed_count
                     )
 
+                # Grab duration
+                try:
+                    wait.until(
+                        EC.presence_of_element_located(
+                            (
+                                By.CSS_SELECTOR,
+                                ".ytp-time-duration",
+                            )
+                        )
+                    )
+                    logger(f"({title}) duration located.", processed_count)
+                    parsed = BeautifulSoup(driver.page_source, features="html.parser")
+
+                    res[title]["duration"] = parsed.select_one(
+                        ".ytp-time-duration"
+                    ).text  # type: ignore
+                    logger(f"({title}) duration extracted.", processed_count)
+                except:
+                    logger(
+                        f"({title}) failed to locate duration, assuming empty or non-standard tagging, skipping.",
+                        processed_count,
+                    )
+
+                # Grab channel
+                try:
+                    wait.until(
+                        EC.presence_of_element_located(
+                            (
+                                By.CSS_SELECTOR,
+                                ".ytd-channel-name a",
+                            )
+                        )
+                    )
+                    logger(f"({title}) channel located.", processed_count)
+                    parsed = BeautifulSoup(driver.page_source, features="html.parser")
+
+                    res[title]["channelName"] = parsed.select_one(
+                        ".ytd-channel-name a",
+                    ).text  # type: ignore
+                    logger(f"({title}) channel extracted.", processed_count)
+                except:
+                    logger(
+                        f"({title}) failed to locate channel, assuming empty or non-standard tagging, skipping.",
+                        processed_count,
+                    )
+
+                # Grab sub count
+                try:
+                    wait.until(
+                        EC.presence_of_element_located(
+                            (
+                                By.CSS_SELECTOR,
+                                "#owner-sub-count",
+                            )
+                        )
+                    )
+                    logger(f"({title}) sub count located.", processed_count)
+                    parsed = BeautifulSoup(driver.page_source, features="html.parser")
+
+                    res[title]["subCount"] = parsed.select_one(
+                        "#owner-sub-count"
+                    ).text  # type: ignore
+                    logger(f"({title}) sub count extracted.", processed_count)
+                except:
+                    logger(
+                        f"({title}) failed to locate sub count, assuming empty or non-standard tagging, skipping.",
+                        processed_count,
+                    )
+
+                # Grab views and date
+                try:
+                    wait.until(
+                        EC.presence_of_element_located(
+                            (
+                                By.CSS_SELECTOR,
+                                ".ytd-watch-info-text #info",
+                            )
+                        )
+                    )
+                    logger(f"({title}) date & views located.", processed_count)
+                    parsed = BeautifulSoup(driver.page_source, features="html.parser")
+
+                    date_views = parsed.select_one(".ytd-watch-info-text #info").text.split(  # type: ignore
+                        " "
+                    )
+                    if len(date_views) > 1:
+                        res[title]["viewCount"] = date_views[0]
+                    res[title]["uploadDate"] = date_views[-1]
+                    logger(f"({title}) date & views extracted.", processed_count)
+                except:
+                    logger(
+                        f"({title}) failed to locate date & views count, assuming empty or non-standard tagging, skipping.",
+                        processed_count,
+                    )
+
                 processed_count += 1
 
                 # Extract related video URLs
@@ -146,7 +241,6 @@ with webdriver.Chrome(options=options, version_main=127) as driver:
 
             initial_video_urls = [yturl + str(title["href"]) for title in all_titles]
 
-            max_depth = 2
             explore_videos(driver, initial_video_urls, 0, max_depth)
 
         except:
