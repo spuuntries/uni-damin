@@ -15,7 +15,7 @@ This repository, or, well, at least this folder, contains the first week assignm
 
 The dataset is comprised of two JSON-formatted sets, scraped off Youtube with undetected-chromedriver. No post-processing has been done to it. Used were personal accounts of Faiz and Addin to obtain the curated feed.
 
-`...3013ed129353.json` contains our initial attempt for a larger-scale scrape, although we didn't extract as much information there, it contains the description, hrefs, and titles of 1421 videos along with the likes on each of them.
+`...3013ed129353.json` contains our initial attempt for a larger-scale scrape. Although we didn't extract as much information there, it contains the description, hrefs, and titles of 1421 videos along with the likes on each of them.
 
 The `...8544a64d571d.json` set is our latest iteration with more selectors and a more comprehensive scrape. It contains the metadata of 1409 videos, described by the following fields:
 
@@ -31,7 +31,7 @@ The `...8544a64d571d.json` set is our latest iteration with more selectors and a
 
 Our scraper is based on undetected-chromedriver, which itself wraps selenium. The reasoning for this is because my (Faiz) personal browser is Brave, and selenium's default chromedriver doesn't play nice with it.
 
-To run, you can copy `.env.example` to `.env` and fill it in with your environment's variables. You can obtain both of the variables in `chrome://`version if you're working with Chrome, and `brave://version` if you're working with Brave.
+To run, you can copy `.env.example` to `.env` and fill it in with your environment's variables. You can obtain both of the variables in `chrome://version` if you're working with Chrome, and `brave://version` if you're working with Brave.
 
 The scraper works in a Depth-Limited Search (DLS) manner, starting with the homepage and grabbing all of the recommendations that follows after you click on each of them. So, i.e.,
 
@@ -70,4 +70,18 @@ Folder ini berisi hasil tugas minggu pertama Data Mining Faiz dan Addin.
 
 ## 🗒️ **Deskripsi**
 
-<!-- todo -->
+Dataset terdiri dari dua set yang terformat sebagai JSON, yang kami _scrape_ dari Youtube menggunakan undetected-chromedriver. Belum ada step-step _post-processing_ yang dilakukan pada hasilnya. Digunakan merupakan akun pribadi Faiz dan Addin untuk mendapatkan beranda Youtube yang telah dikurasi.
+
+`...3013ed129353.json` berisi percobaan awal kami untuk sebuah _scrape_ dengan skala yang lebih besar. Walaupun kami tidak mengekstrak informasi yang cukup banyak di sana, set ini berisi deskripsi, href, dan judul dari 1421 video bersama dengan data _like_ pada tiap-tiap videonya.
+
+Set `...8544a64d571d.json` adalah iterasi terbaru kami, dengan jumlah selector lebih banyak dan _scrape_ yang lebih komprehensif. Set ini berisi metadata dari 1409 video, sebagai berikut:
+
+1. title: Judul dari video
+2. desc: Deskripsi dari video
+3. likes: Jumlah _like_ pada video
+4. duration: Durasi dari video
+5. channelName: Nama _channel_ yang mengunggah
+6. subCount: Jumlah _subscriber channel_ yang mengunggah
+7. dateAndViews: Jumlah berapa kali ditonton dan tanggal pengunggahan
+
+<!-- Todo >
