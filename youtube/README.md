@@ -84,4 +84,35 @@ Set `...8544a64d571d.json` adalah iterasi terbaru kami, dengan jumlah selector l
 6. subCount: Jumlah _subscriber channel_ yang mengunggah
 7. dateAndViews: Jumlah berapa kali ditonton dan tanggal pengunggahan
 
-<!-- Todo >
+## 🤖 **Scraper**
+
+Scraper kami menggunakan undetected-chromedriver, yang meng-_wrap_ selenium. Alasan penggunaannya di sini adalah karena browser saya (Faiz) Brave, dan chromedriver selenium tidak berfungsi dengan baik dengan Brave.
+
+Untuk menggunakannya, bisa anda _copy_ `.env.example` ke `.env` dan diisi dengan variabel pada _environment_ anda. Variabel-variabelnya bisa anda dapatkan di `chrome://version` jika anda menggunakan Chrome, dan `brave://version` jika anda menggunakan Brave.
+
+Scrapernya berfungsi dengan cara _Depth-Limited Search_ (DLS), dimulai dari beranda, diambil semua rekomendasi yang terdapat pada tiap-tiap videonya. Jadi, i.e.,
+
+```mermaid
+graph TD;
+    Homepage --> Video_1;
+    Homepage --> Video_2;
+    Homepage --> Video_...;
+    Video_1 --> Video_1_1;
+    Video_1 --> Video_1_2;
+    Video_1 --> Video_1_...;
+    Video_2 --> Video_2_1;
+    Video_2 --> Video_2_2;
+    Video_2 --> Video_2_...;
+    Video_... --> Video_..._...;
+```
+
+(dengan asumsi kedalaman 1, konfigurasi saat ini kedalaman 2)
+
+## 😦 **Caveats/Appendix**
+
+Seperti sebelumnya dijelaskan, belum ada post-processing yang dilakukan pada _scrape_-nya. Artinya ada beberapa malformasi pada setnya, tetapi menurut kami karena skala dari setnya, setnya relatif bersih.
+
+Beberapa malformasi setelah dicek beberapa kali:
+
+1. _Selector_ `likes` kadang meleset, ini karena Youtube menambahkan fitur _like_ yang teranimasi yang mengubah HTML yang terkirim ke browser, i.e. angkanya _scroll_ ketika di-klik dan ini dilakukan dengan benar-benar mengubah di HTML-nya. Ini berakibat pada _artifact_ `0123456789`.
+2. `dateAndViews` kedang berisi _hashtags_ juga, ini karena _selector_ kami mengambil barisnya secara _general_, inipun karena terkadang ukuran dari selector akan inkonsisten akibat dari _hashtags_ tersebut.
