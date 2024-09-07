@@ -4,4 +4,4 @@ This repository contains the assignments of me, Faiz (AI Engineering @ ITS'23), 
 
 Here's a brief overview:
 
-1. [**youtube**](./youtube/): This is the first week's assignment for the course, I did this with Addin, it was on scraping Youtube videos' metadatas.
+1. [**youtube**](./tugas1_youtube/): This is the first week's assignment for the course, I did this with Addin, it was on scraping Youtube videos' metadatas.
